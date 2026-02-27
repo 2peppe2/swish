@@ -1,0 +1,15 @@
+model Payment {
+  id                       String   @id
+  payee_payment_reference  String   
+  payment_reference        String?  // From bank
+  payee_alias              String   
+  payer_alias              String?  
+  currency                 String   
+  message                  String?  
+  status                   String   
+  amount                   Float
+  created_at               DateTime
+  updated_at               DateTime?
+  paid_at                  DateTime?
+  redirect_callback_url    String
+}
