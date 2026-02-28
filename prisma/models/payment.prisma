@@ -1,15 +1,26 @@
 model Payment {
-  id                       String   @id
-  payee_payment_reference  String   
-  payment_reference        String?  // From bank
+  id                       String   @id @default(uuid())
+  payee_payment_reference  String   @unique
+  payment_reference        String?  @unique // From bank
   payee_alias              String   
   payer_alias              String?  
-  currency                 String   
+  currency                 Currency @default(SEK)   
   message                  String?  
-  status                   String   
-  amount                   Float
-  created_at               DateTime
+  status                   PaymentStatus @default(PROCESSING)  
+  amount                   Int
+  created_at               DateTime @default(now())
   updated_at               DateTime?
   paid_at                  DateTime?
-  redirect_callback_url    String
+  redirect_url_on_payment    String
+}
+
+enum PaymentStatus {
+  PROCESSING
+  PAID
+  ERROR
+  DECLINED
+  CANCELLED
+}
+enum Currency {
+  SEK
 }
