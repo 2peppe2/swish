@@ -1,3 +1,5 @@
+"use server";
+
 import prisma from "@/lib/prisma";
 
 const getStatus = async (ref: string) => {

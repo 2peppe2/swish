@@ -4,6 +4,10 @@ import { PaymentStatus } from "@/app/generated/prisma/client";
 import { generateUUID } from "@/lib/uuid";
 
 const getExternalPayment = async (reference: string) => {
+  if (!reference) {
+    throw new Error("Payment reference is required");
+  }
+
   // Check if the payment exists in the database
   const payment = await prisma.payment.findUnique({
     where: {
@@ -55,3 +59,7 @@ const temporaryPayment = async (ref: string) => {
   });
   return newPayment;
 };
+
+
+
+

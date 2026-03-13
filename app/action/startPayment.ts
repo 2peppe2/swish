@@ -1,7 +1,7 @@
 "use server";
 import prisma from "@/lib/prisma";
 import swish from "@/lib/swish";
-import { isSwishError, SwishError } from "@/lib/swishPaymentHandler";
+import { isSwishError } from "@/lib/swishPaymentHandler";
 
 interface StartPaymentProps {
   reference: string;
@@ -32,7 +32,7 @@ const startPayment = async ({ reference, payerAlias }: StartPaymentProps) => {
     );
 
   if (isSwishError(request)) {
-    return "Error creating payment request: " + (request as SwishError).message;
+    return "Error creating payment request: " + request.message;
   }
   console.log("Payment request created successfully:", request);
 

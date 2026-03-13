@@ -10,7 +10,7 @@ interface AgentCertificates {
 
 interface PaymentRequest {
   id?: string;
-  payeePaymentReference?: string;
+  payeePaymentReference: string;
   payerAlias: string;
   amount: string;
   message?: string;
@@ -38,13 +38,76 @@ interface QrRequest {
   border?: number;
 }
 
+type SwishApiErrorDetail = {
+  errorCode: string;
+  errorMessage: string;
+  additionalInformation?: string;
+};
+
+type SwishApiErrorResponse = SwishApiErrorDetail | SwishApiErrorDetail[];
+
 export type SwishError = {
   message: string;
-  data?: unknown;
+  data?: SwishApiErrorResponse;
   status?: number;
 };
 
+type SwishPaymentRequestStatus =
+  | "CREATED"
+  | "PAID"
+  | "ERROR"
+  | "DECLINED"
+  | "CANCELLED";
+
+type SwishPaymentRequestResponse = {
+  id: string;
+  payeePaymentReference: string;
+  paymentReference: string | null;
+  callbackUrl: string;
+  payerAlias: string | null;
+  payeeAlias: string;
+  amount: number;
+  currency: string;
+  message: string;
+  status: SwishPaymentRequestStatus;
+  dateCreated: string;
+  datePaid: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+};
+
+type CancelPaymentRequestPatchOperation = {
+  op: "replace";
+  path: "/status";
+  value: "cancelled";
+};
+
+type SwishRefundRequestStatus = "CREATED" | "PAID" | "ERROR" | "DECLINED";
+
+type SwishRefundRequestResponse = {
+  id: string;
+  payerPaymentReference: string | null;
+  originalPaymentReference: string;
+  callbackUrl: string;
+  payerAlias: string;
+  payeeAlias: string;
+  amount: number;
+  currency: string;
+  message: string;
+  status: SwishRefundRequestStatus;
+  dateCreated: string;
+  datePaid: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+};
+
 type CreatePaymentSuccess = {
+  uuid: string;
+  status: number;
+  location?: string;
+};
+
+type CreateRefundSuccess = {
   uuid: string;
   status: number;
   location?: string;
@@ -56,7 +119,19 @@ export const isSwishError = (value: unknown): value is SwishError =>
   "message" in value &&
   typeof (value as { message?: unknown }).message === "string";
 
-export type { PaymentRequest, RefundRequest, QrRequest, CreatePaymentSuccess };
+export type {
+  PaymentRequest,
+  RefundRequest,
+  QrRequest,
+  CreatePaymentSuccess,
+  CreateRefundSuccess,
+  SwishPaymentRequestResponse,
+  SwishRefundRequestResponse,
+  SwishPaymentRequestStatus,
+  SwishRefundRequestStatus,
+  SwishApiErrorDetail,
+  SwishApiErrorResponse,
+};
 
 export default class PaymentHandler {
   private _agent: https.Agent;
@@ -169,9 +244,9 @@ export default class PaymentHandler {
    */
   public async retrievePaymentRequest(
     location: string,
-  ): Promise<unknown | SwishError> {
+  ): Promise<SwishPaymentRequestResponse | SwishError> {
     try {
-      const res = await this.client.get(location);
+      const res = await this.client.get<SwishPaymentRequestResponse>(location);
 
       return res.data;
     } catch (e: unknown) {
@@ -186,18 +261,20 @@ export default class PaymentHandler {
    */
   public async cancelPaymentRequest(
     uuid: string,
-  ): Promise<unknown | SwishError> {
+  ): Promise<SwishPaymentRequestResponse | SwishError> {
     try {
-      const location = `${this.baseURL()}v1/paymentrequests/${uuid}`;
-      const res = await this.client.patch(
-        location,
-        [
-          {
-            op: "replace",
-            path: "/status",
-            value: "cancelled",
-          },
-        ],
+      const url = `${this.baseURL()}v2/paymentrequests/${uuid}`;
+      const patchBody: CancelPaymentRequestPatchOperation[] = [
+        {
+          op: "replace",
+          path: "/status",
+          value: "cancelled",
+        },
+      ];
+
+      const res = await this.client.patch<SwishPaymentRequestResponse>(
+        url,
+        patchBody,
         {
           headers: {
             "Content-Type": "application/json-patch+json",
@@ -213,7 +290,7 @@ export default class PaymentHandler {
   public async createRefundRequest(
     paymentUUID: string,
     options: RefundRequest,
-  ): Promise<unknown | SwishError> {
+  ): Promise<CreateRefundSuccess | SwishError> {
     try {
       // TODO: error: Callback URL is missing or does not use Https
       const data = {
@@ -230,7 +307,11 @@ export default class PaymentHandler {
       const url = `${this.baseURL()}v2/refunds/${paymentUUID}`;
 
       const res = await this.client.put(url, data);
-      return res.data;
+      return {
+        uuid: paymentUUID,
+        status: res.status,
+        location: res.headers.location as string | undefined,
+      };
     } catch (e: unknown) {
       return this.formatError(e);
     }
@@ -238,9 +319,9 @@ export default class PaymentHandler {
 
   public async retrieveRefundRequest(
     location: string,
-  ): Promise<unknown | SwishError> {
+  ): Promise<SwishRefundRequestResponse | SwishError> {
     try {
-      const res = await this.client.get(location);
+      const res = await this.client.get<SwishRefundRequestResponse>(location);
       return res.data;
     } catch (e: unknown) {
       return this.formatError(e);

@@ -1,19 +1,23 @@
+import { getExternalPayment } from "@/app/action/external";
+import WaitingClientPage from "./WaitingClientPage";
 
-import { FC } from "react";
-
-interface ProcessingPageProps {
+interface WaitingPageProps {
   params: Promise<{ ref: string }>;
 }
 
-const ProcessingPage: FC<ProcessingPageProps> = async ({ params }) => {
+const WaitingPage = async ({ params }: WaitingPageProps) => {
   const { ref } = await params;
-    
+  const payment = await getExternalPayment(ref);
 
   return (
     <main>
-      <div>{ref}</div>
+      <WaitingClientPage
+        reference={ref}
+        initialStatus={payment.status}
+        redirectUrl={payment.redirect_url_on_payment}
+      />
     </main>
   );
 };
 
-export default ProcessingPage;
+export default WaitingPage;
