@@ -7,7 +7,7 @@ model Payment {
   currency                 Currency @default(SEK)   
   message                  String  
   status                   PaymentStatus @default(INITIATED)  
-  amount                   Int
+  amount                   Float
   created_at               DateTime @default(now())
   updated_at               DateTime @updatedAt
   paid_at                  DateTime?

@@ -15,6 +15,7 @@ import WaitingActions from "./components/WaitingActions";
 import WaitingMetaInfo from "./components/WaitingMetaInfo";
 import WaitingStatusPanel from "./components/WaitingStatusPanel";
 import { useRouter } from "next/navigation";
+import { isTerminalStatus } from "@/lib/utils";
 
 interface WaitingClientPageProps {
   reference: string;
@@ -34,11 +35,7 @@ const WaitingClientPage = ({
   const [requestError, setRequestError] = useState<string | null>(null);
   const router = useRouter();
 
-  const isTerminalStatus =
-    status === PaymentStatus.PAID ||
-    status === PaymentStatus.CANCELLED ||
-    status === PaymentStatus.DECLINED ||
-    status === PaymentStatus.ERROR;
+
 
   const isMobile =
     typeof navigator !== "undefined" &&

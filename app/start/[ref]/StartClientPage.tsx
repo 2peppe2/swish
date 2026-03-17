@@ -2,7 +2,7 @@
 
 import { Payment } from "@/app/types/payment";
 import { useState } from "react";
-import StartPaymentCard from "./StartPaymentCard";
+import StartPaymentCard from "./components/StartPaymentCard";
 
 interface StartClientPageProps {
   payment: Payment;
@@ -17,11 +17,6 @@ const StartClientPage = ({ payment }: StartClientPageProps) => {
       ? "Ange ett giltigt mobilnummer, till exempel 70 123 45 67."
       : undefined;
 
-  const formattedAmount = new Intl.NumberFormat("sv-SE", {
-    style: "currency",
-    currency: "SEK",
-  }).format(payment.amount);
-
   return (
     <div className="relative min-h-screen overflow-hidden bg-background px-4 py-8 sm:px-6 sm:py-10">
       <div className="pointer-events-none absolute inset-0">
@@ -31,12 +26,12 @@ const StartClientPage = ({ payment }: StartClientPageProps) => {
 
       <div className="relative mx-auto flex w-full max-w-2xl flex-col gap-6">
         <StartPaymentCard
-          formattedAmount={formattedAmount}
           phoneNumber={phoneNumber}
           onPhoneNumberChange={setPhoneNumber}
           onPhoneNumberBlur={() => setPhoneNumberTouched(true)}
           phoneNumberError={phoneNumberError}
           canSubmit={isPhoneNumberValid}
+          payment={payment}
         />
       </div>
     </div>

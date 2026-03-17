@@ -13,10 +13,18 @@ const cancelPayment = async (reference: string) => {
     if (!payment) {
         throw new Error(`Payment with reference ${reference} not found`);
     }
-    const cancelledPayment = await swish.cancelPaymentRequest(payment.id);
-    if (isSwishError(cancelledPayment)) {
-        throw new Error(cancelledPayment.message);
+    const swishPaymentResponse = await swish.cancelPaymentRequest(payment.id);
+    if (isSwishError(swishPaymentResponse)) {
+        throw new Error(swishPaymentResponse.message);
     }
+    const cancelledPayment = await prisma.payment.update({
+        where: {
+            id: payment.id,
+        },
+        data: {
+            status: "CANCELLED",
+        },
+    });
     return cancelledPayment;
 };
 

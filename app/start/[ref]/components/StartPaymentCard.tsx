@@ -1,46 +1,35 @@
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import PaymentInfoDialog from "./PaymentInfoDialog";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
+import StartCardFooter from "./StartCardFooter";
+import StartCardHeader from "./StartCardHeader";
+import StartPayButton from "./startPayButton";
+import { Payment } from "@/app/types/payment";
+import { formattedAmount } from "@/lib/utils";
 
 interface StartPaymentCardProps {
-  formattedAmount: string;
   phoneNumber: string;
   onPhoneNumberChange: (value: string) => void;
   onPhoneNumberBlur: () => void;
   phoneNumberError?: string;
   canSubmit: boolean;
+  payment: Payment
 }
 
 const StartPaymentCard = ({
-  formattedAmount,
   phoneNumber,
   onPhoneNumberChange,
   onPhoneNumberBlur,
   phoneNumberError,
   canSubmit,
+  payment,
 }: StartPaymentCardProps) => {
   return (
     <Card className="border-border/80 bg-card/90 shadow-lg backdrop-blur">
-      <CardHeader className="gap-4 pb-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <CardTitle className="text-2xl">Betala med Swish</CardTitle>
-            <CardDescription className="mt-1 text-base text-muted-foreground">
-              Ange ditt mobilnummer för att godkänna betalningen.
-            </CardDescription>
-          </div>
-          <PaymentInfoDialog />
-        </div>
-      </CardHeader>
+      <StartCardHeader />
       <CardContent className="space-y-6">
         <div className="space-y-2">
           <Field data-invalid={!!phoneNumberError}>
@@ -71,20 +60,11 @@ const StartPaymentCard = ({
         </div>
         <div className="rounded-xl border border-border/80 bg-muted/40 px-5 py-4">
           <div className="text-sm text-muted-foreground">Belopp att betala</div>
-          <div className="text-3xl font-semibold">{formattedAmount}</div>
+          <div className="text-3xl font-semibold">{formattedAmount(payment.amount)}</div>
         </div>
-        <Button className="h-12 w-full text-base font-semibold" disabled={!canSubmit}>
-          Betala
-        </Button>
+      <StartPayButton canSubmit={canSubmit} reference={payment.payee_payment_reference} phoneNumber={phoneNumber} />  
       </CardContent>
-      <CardFooter className="flex flex-col-reverse items-start gap-3 border-t border-border/80 pt-5 sm:flex-row sm:items-center sm:justify-between">
-        <Button variant="ghost" className="w-full sm:w-auto">
-          Avbryt
-        </Button>
-        <div className="text-xs text-muted-foreground">
-          Genom att fortsätta godkänner du villkoren.
-        </div>
-      </CardFooter>
+      <StartCardFooter reference={payment.payee_payment_reference} callbackUrl={payment.redirect_url_on_payment} />
     </Card>
   );
 };
