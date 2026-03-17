@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -16,26 +16,36 @@ import WaitingMetaInfo from "./components/WaitingMetaInfo";
 import WaitingStatusPanel from "./components/WaitingStatusPanel";
 import { useRouter } from "next/navigation";
 import { isTerminalStatus } from "@/lib/utils";
+import type { StatusStreamEvent } from "@/lib/sse";
 
 interface WaitingClientPageProps {
   reference: string;
   initialStatus: PaymentStatus;
-  redirectUrl: string;
+  startedAt: string;
 }
 
-const POLL_INTERVAL_MS = 1000;
+const PAYMENT_TIMEOUT_MS = 5 * 60 * 1000;
+
+const getRemainingSeconds = (startedAt: string) =>
+  Math.max(
+    0,
+    Math.ceil(
+      (new Date(startedAt).getTime() + PAYMENT_TIMEOUT_MS - Date.now()) / 1000,
+    ),
+  );
 
 const WaitingClientPage = ({
   reference,
   initialStatus,
-  redirectUrl,
+  startedAt,
 }: WaitingClientPageProps) => {
   const [status, setStatus] = useState<PaymentStatus>(initialStatus);
   const [isCancelling, setIsCancelling] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
+  const [remainingSeconds, setRemainingSeconds] = useState(() =>
+    getRemainingSeconds(startedAt),
+  );
   const router = useRouter();
-
-
 
   const isMobile =
     typeof navigator !== "undefined" &&
@@ -47,10 +57,8 @@ const WaitingClientPage = ({
     if (isTerminalStatus(status)) {
       router.push("/status/" + reference);
     }
-  }, [status, redirectUrl, router, reference]);
+  }, [status, router, reference]);
 
-
-  // Polling for status updates
   useEffect(() => {
     if (isTerminalStatus(status)) {
       return;
@@ -58,7 +66,7 @@ const WaitingClientPage = ({
 
     let active = true;
 
-    const pollStatus = async () => {
+    const refreshStatus = async () => {
       try {
         const nextStatus = await getStatus(reference);
         if (!active) return;
@@ -70,18 +78,42 @@ const WaitingClientPage = ({
       }
     };
 
-    void pollStatus();
+    const eventSource = new EventSource(
+      `/api/status-stream?reference=${encodeURIComponent(reference)}`,
+    );
 
-    const pollingTimer = setInterval(() => {
-      void pollStatus();
-    }, POLL_INTERVAL_MS);
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data) as StatusStreamEvent;
+      if (data.type !== "status-update") {
+        return;
+      }
+
+      void refreshStatus();
+    };
+
+    void refreshStatus();
 
     return () => {
       active = false;
-      clearInterval(pollingTimer);
+      eventSource.close();
     };
   }, [reference, status]);
 
+  useEffect(() => {
+    if (isTerminalStatus(status)) {
+      return;
+    }
+
+    setRemainingSeconds(getRemainingSeconds(startedAt));
+
+    const countdownTimer = window.setInterval(() => {
+      setRemainingSeconds(getRemainingSeconds(startedAt));
+    }, 1000);
+
+    return () => {
+      window.clearInterval(countdownTimer);
+    };
+  }, [startedAt, status]);
 
   const canCancel = !isCancelling && !isTerminalStatus(status);
 
@@ -94,11 +126,14 @@ const WaitingClientPage = ({
     try {
       const canceledPayment = await cancelPayment(reference);
       if (canceledPayment.status === "CANCELLED") {
+        setStatus(canceledPayment.status);
         router.push("/status/" + reference);
       }
     } catch {
       setRequestError("Kunde inte avbryta betalningen just nu.");
-    } 
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   return (
@@ -120,7 +155,7 @@ const WaitingClientPage = ({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <WaitingStatusPanel />
+            <WaitingStatusPanel remainingSeconds={remainingSeconds} />
             <WaitingActions
               shouldShowOpenSwishButton={isMobile}
               canCancel={canCancel}

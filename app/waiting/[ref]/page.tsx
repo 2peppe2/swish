@@ -14,7 +14,7 @@ const WaitingPage = async ({ params }: WaitingPageProps) => {
       <WaitingClientPage
         reference={ref}
         initialStatus={payment.status}
-        redirectUrl={payment.redirect_url_on_payment}
+        startedAt={payment.updated_at.toISOString()}
       />
     </main>
   );
