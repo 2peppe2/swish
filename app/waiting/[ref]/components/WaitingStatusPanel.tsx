@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { LoaderCircle } from "lucide-react";
 
 interface WaitingStatusPanelProps {
   remainingSeconds: number;
@@ -22,6 +23,7 @@ const WaitingStatusPanel = ({ remainingSeconds }: WaitingStatusPanelProps) => {
           variant="outline"
           className="border-border/80 bg-background/80 px-3.5 py-1.5 text-xs text-muted-foreground"
         >
+           <LoaderCircle className="h-4 w-4 animate-spin text-primary" />
           Sidan uppdateras automatiskt
         </Badge>
         <p className="text-xs text-muted-foreground">
