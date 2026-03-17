@@ -44,15 +44,15 @@ const WaitingClientPage = ({
     );
 
   useEffect(() => {
-    if (isTerminalStatus) {
+    if (isTerminalStatus(status)) {
       router.push("/status/" + reference);
     }
-  }, [isTerminalStatus, redirectUrl, router, reference]);
+  }, [status, redirectUrl, router, reference]);
 
 
   // Polling for status updates
   useEffect(() => {
-    if (isTerminalStatus) {
+    if (isTerminalStatus(status)) {
       return;
     }
 
@@ -80,10 +80,10 @@ const WaitingClientPage = ({
       active = false;
       clearInterval(pollingTimer);
     };
-  }, [isTerminalStatus, reference, status]);
+  }, [reference, status]);
 
 
-  const canCancel = !isCancelling && !isTerminalStatus;
+  const canCancel = !isCancelling && !isTerminalStatus(status);
 
   const handleCancel = async () => {
     if (!canCancel) return;
@@ -94,7 +94,7 @@ const WaitingClientPage = ({
     try {
       const canceledPayment = await cancelPayment(reference);
       if (canceledPayment.status === "CANCELLED") {
-        useRouter().push("/status/" + reference);
+        router.push("/status/" + reference);
       }
     } catch {
       setRequestError("Kunde inte avbryta betalningen just nu.");

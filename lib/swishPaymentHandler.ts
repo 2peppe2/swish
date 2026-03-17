@@ -175,10 +175,12 @@ export default class PaymentHandler {
     });
   }
 
-  private baseURL() {
-    return this.development
+  private baseURL(version: "v1" | "v2" = "v2") {
+    const base = this.development
       ? "https://mss.cpc.getswish.net/swish-cpcapi/api/"
       : "https://cpc.getswish.net/swish-cpcapi/api/";
+
+    return `${base}${version}/`;
   }
 
   private generateUUID() {
@@ -224,7 +226,7 @@ export default class PaymentHandler {
       message: options.message,
     };
 
-    const url = `${this.baseURL()}v2/paymentrequests/${uuid}`;
+    const url = `${this.baseURL("v2")}paymentrequests/${uuid}`;
     try {
       const res = await this.client.put(url, data);
       return {
@@ -263,7 +265,7 @@ export default class PaymentHandler {
     uuid: string,
   ): Promise<SwishPaymentRequestResponse | SwishError> {
     try {
-      const url = `${this.baseURL()}v2/paymentrequests/${uuid}`;
+      const url = `${this.baseURL("v1")}paymentrequests/${uuid}`;
       const patchBody: CancelPaymentRequestPatchOperation[] = [
         {
           op: "replace",
@@ -304,7 +306,7 @@ export default class PaymentHandler {
         payerPaymentReference: options.payerPaymentReference,
       };
 
-      const url = `${this.baseURL()}v2/refunds/${paymentUUID}`;
+      const url = `${this.baseURL("v2")}refunds/${paymentUUID}`;
 
       const res = await this.client.put(url, data);
       return {

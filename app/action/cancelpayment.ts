@@ -2,7 +2,6 @@
 
 import prisma from "@/lib/prisma";
 import swish from "@/lib/swish";
-import { isSwishError } from "@/lib/swishPaymentHandler";
 
 const cancelPayment = async (reference: string) => {
     const payment = await prisma.payment.findUnique({
@@ -14,9 +13,11 @@ const cancelPayment = async (reference: string) => {
         throw new Error(`Payment with reference ${reference} not found`);
     }
     const swishPaymentResponse = await swish.cancelPaymentRequest(payment.id);
-    if (isSwishError(swishPaymentResponse)) {
+    console.log("Swish cancel response:", swishPaymentResponse);
+    if (!swishPaymentResponse.status || swishPaymentResponse.status !== "CANCELLED") {
         throw new Error(swishPaymentResponse.message);
     }
+    
     const cancelledPayment = await prisma.payment.update({
         where: {
             id: payment.id,

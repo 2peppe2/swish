@@ -1,4 +1,14 @@
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface WaitingActionsProps {
   shouldShowOpenSwishButton: boolean;
@@ -22,14 +32,35 @@ const WaitingActions = ({
       )}
 
       <div className="flex justify-center">
-        <Button
-          variant="destructive"
-          className="h-11"
-          onClick={onCancel}
-          disabled={!canCancel}
-        >
-          {isCancelling ? "Avbryter..." : "Avbryt betalning"}
-        </Button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="h-11" disabled={!canCancel}>
+              Avbryt betalning
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Avbryta väntande betalning?</DialogTitle>
+              <DialogDescription>
+                Om du avbryter nu stoppas den pågående Swish-förfrågan.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline" disabled={isCancelling}>
+                  Fortsätt vänta
+                </Button>
+              </DialogClose>
+              <Button
+                variant="destructive"
+                onClick={onCancel}
+                disabled={!canCancel}
+              >
+                {isCancelling ? "Avbryter..." : "Ja, avbryt"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </>
   );
