@@ -3,6 +3,10 @@ import {
   removeStatusStreamClient,
   type StatusStreamEvent,
 } from "@/lib/sse";
+import {
+  expirePaymentIfTimedOut,
+  getPaymentTimeoutRemainingMs,
+} from "@/lib/paymentExpiry";
 import { isTerminalStatus } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +30,7 @@ export async function GET(request: Request) {
     start(controller) {
       let closed = false;
       let keepalive: ReturnType<typeof setInterval> | null = null;
+      let expiryTimer: ReturnType<typeof setTimeout> | null = null;
 
       const close = () => {
         if (closed) {
@@ -35,6 +40,9 @@ export async function GET(request: Request) {
         closed = true;
         if (keepalive) {
           clearInterval(keepalive);
+        }
+        if (expiryTimer) {
+          clearTimeout(expiryTimer);
         }
         removeStatusStreamClient(clientId);
 
@@ -63,6 +71,28 @@ export async function GET(request: Request) {
       });
 
       send({ type: "connected" });
+
+      if (reference) {
+        void (async () => {
+          try {
+            const remainingMs = await getPaymentTimeoutRemainingMs(reference);
+            if (remainingMs === null || closed) {
+              return;
+            }
+
+            if (remainingMs === 0) {
+              await expirePaymentIfTimedOut(reference);
+              return;
+            }
+
+            expiryTimer = setTimeout(() => {
+              void expirePaymentIfTimedOut(reference);
+            }, remainingMs);
+          } catch {
+            close();
+          }
+        })();
+      }
 
       keepalive = setInterval(() => {
         try {

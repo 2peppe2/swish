@@ -30,7 +30,6 @@ export async function POST(request: Request) {
   }
 
   const hasStatusChanged = existingPayment.status !== status;
-
   await prisma.payment.update({
     where: {
       id,

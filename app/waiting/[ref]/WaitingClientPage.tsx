@@ -2,18 +2,21 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  Badge,
+} from "@/components/ui/badge";
+import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getStatus } from "@/app/action/getStatus";
 import { cancelPayment } from "@/app/action/cancelPayment";
 import { PaymentStatus } from "@/app/generated/prisma/enums";
 import WaitingActions from "./components/WaitingActions";
 import WaitingMetaInfo from "./components/WaitingMetaInfo";
 import WaitingStatusPanel from "./components/WaitingStatusPanel";
+import { PAYMENT_TIMEOUT_MS } from "@/lib/paymentTimeoutConfig";
 import { useRouter } from "next/navigation";
 import { isTerminalStatus } from "@/lib/utils";
 import type { StatusStreamEvent } from "@/lib/sse";
@@ -23,8 +26,6 @@ interface WaitingClientPageProps {
   initialStatus: PaymentStatus;
   startedAt: string;
 }
-
-const PAYMENT_TIMEOUT_MS = 3 * 60 * 1000;
 
 const getRemainingSeconds = (startedAt: string) =>
   Math.max(
@@ -67,7 +68,19 @@ const WaitingClientPage = ({
 
     const refreshStatus = async () => {
       try {
-        const nextStatus = await getStatus(reference);
+        const response = await fetch(
+          `/api/payment-status/${encodeURIComponent(reference)}`,
+          {
+            cache: "no-store",
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch payment status");
+        }
+
+        const data = (await response.json()) as { status: PaymentStatus };
+        const nextStatus = data.status;
         if (!active) return;
         setStatus(nextStatus);
         setRequestError(null);
@@ -94,13 +107,7 @@ const WaitingClientPage = ({
         return;
       }
 
-      setRequestError(null);
-      setStatus(data.status);
-
-      if (isTerminalStatus(data.status)) {
-        eventSource.close();
-        eventSourceRef.current = null;
-      }
+      void refreshStatus();
     };
 
     eventSource.onerror = () => {
@@ -169,6 +176,12 @@ const WaitingClientPage = ({
       <div className="relative mx-auto flex w-full max-w-2xl flex-col gap-6">
         <Card className="border-border/80 bg-card/90 shadow-lg backdrop-blur">
           <CardHeader className="gap-3">
+            <Badge
+              variant="outline"
+              className="border-border/80 bg-background/70 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+            >
+              Väntar
+            </Badge>
             <CardTitle className="text-2xl">
               Väntar på betalning i Swish
             </CardTitle>
