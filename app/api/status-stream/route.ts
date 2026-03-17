@@ -3,6 +3,7 @@ import {
   removeStatusStreamClient,
   type StatusStreamEvent,
 } from "@/lib/sse";
+import { isTerminalStatus } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -24,6 +25,7 @@ export async function GET(request: Request) {
   const stream = new ReadableStream({
     start(controller) {
       let closed = false;
+      let keepalive: ReturnType<typeof setInterval> | null = null;
 
       const close = () => {
         if (closed) {
@@ -31,7 +33,9 @@ export async function GET(request: Request) {
         }
 
         closed = true;
-        clearInterval(keepalive);
+        if (keepalive) {
+          clearInterval(keepalive);
+        }
         removeStatusStreamClient(clientId);
 
         try {
@@ -43,6 +47,13 @@ export async function GET(request: Request) {
 
       const send = (payload: StatusStreamEvent) => {
         controller.enqueue(encodeSseMessage(payload));
+
+        if (
+          payload.type === "status-update" &&
+          isTerminalStatus(payload.status)
+        ) {
+          queueMicrotask(close);
+        }
       };
 
       addStatusStreamClient({
@@ -53,7 +64,7 @@ export async function GET(request: Request) {
 
       send({ type: "connected" });
 
-      const keepalive = setInterval(() => {
+      keepalive = setInterval(() => {
         try {
           controller.enqueue(encodeKeepalive());
         } catch {

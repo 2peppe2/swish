@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Card,
   CardContent,
@@ -24,7 +24,7 @@ interface WaitingClientPageProps {
   startedAt: string;
 }
 
-const PAYMENT_TIMEOUT_MS = 5 * 60 * 1000;
+const PAYMENT_TIMEOUT_MS = 3 * 60 * 1000;
 
 const getRemainingSeconds = (startedAt: string) =>
   Math.max(
@@ -45,6 +45,7 @@ const WaitingClientPage = ({
   const [remainingSeconds, setRemainingSeconds] = useState(() =>
     getRemainingSeconds(startedAt),
   );
+  const eventSourceRef = useRef<EventSource | null>(null);
   const router = useRouter();
 
   const isMobile =
@@ -55,15 +56,13 @@ const WaitingClientPage = ({
 
   useEffect(() => {
     if (isTerminalStatus(status)) {
+      eventSourceRef.current?.close();
+      eventSourceRef.current = null;
       router.push("/status/" + reference);
     }
   }, [status, router, reference]);
 
   useEffect(() => {
-    if (isTerminalStatus(status)) {
-      return;
-    }
-
     let active = true;
 
     const refreshStatus = async () => {
@@ -78,9 +77,16 @@ const WaitingClientPage = ({
       }
     };
 
+    if (isTerminalStatus(initialStatus)) {
+      return () => {
+        active = false;
+      };
+    }
+
     const eventSource = new EventSource(
       `/api/status-stream?reference=${encodeURIComponent(reference)}`,
     );
+    eventSourceRef.current = eventSource;
 
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data) as StatusStreamEvent;
@@ -88,7 +94,21 @@ const WaitingClientPage = ({
         return;
       }
 
-      void refreshStatus();
+      setRequestError(null);
+      setStatus(data.status);
+
+      if (isTerminalStatus(data.status)) {
+        eventSource.close();
+        eventSourceRef.current = null;
+      }
+    };
+
+    eventSource.onerror = () => {
+      if (!active || eventSourceRef.current !== eventSource) {
+        return;
+      }
+
+      setRequestError("Kunde inte lyssna efter statusuppdateringar just nu.");
     };
 
     void refreshStatus();
@@ -96,8 +116,11 @@ const WaitingClientPage = ({
     return () => {
       active = false;
       eventSource.close();
+      if (eventSourceRef.current === eventSource) {
+        eventSourceRef.current = null;
+      }
     };
-  }, [reference, status]);
+  }, [reference, initialStatus]);
 
   useEffect(() => {
     if (isTerminalStatus(status)) {

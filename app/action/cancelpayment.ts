@@ -3,7 +3,6 @@
 import prisma from "@/lib/prisma";
 import { notifyStatusUpdate } from "@/lib/sse";
 import swish from "@/lib/swish";
-import { isSwishError } from "@/lib/swishPaymentHandler";
 
 const cancelPayment = async (reference: string) => {
     const payment = await prisma.payment.findUnique({
