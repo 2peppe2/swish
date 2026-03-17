@@ -21,14 +21,16 @@ const WaitingActions = ({
         </Button>
       )}
 
-      <Button
-        variant="outline"
-        className="h-11 w-full border-border/90 bg-background"
-        onClick={onCancel}
-        disabled={!canCancel}
-      >
-        {isCancelling ? "Avbryter..." : "Avbryt betalning"}
-      </Button>
+      <div className="flex justify-center">
+        <Button
+          variant="destructive"
+          className="h-11"
+          onClick={onCancel}
+          disabled={!canCancel}
+        >
+          {isCancelling ? "Avbryter..." : "Avbryt betalning"}
+        </Button>
+      </div>
     </>
   );
 };

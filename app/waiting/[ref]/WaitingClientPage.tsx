@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { use, useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -14,7 +14,7 @@ import { PaymentStatus } from "@/app/generated/prisma/enums";
 import WaitingActions from "./components/WaitingActions";
 import WaitingMetaInfo from "./components/WaitingMetaInfo";
 import WaitingStatusPanel from "./components/WaitingStatusPanel";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 
 interface WaitingClientPageProps {
   reference: string;
@@ -48,6 +48,14 @@ const WaitingClientPage = ({
 
   useEffect(() => {
     if (isTerminalStatus) {
+      router.push("/status/" + reference);
+    }
+  }, [isTerminalStatus, redirectUrl, router, reference]);
+
+
+  // Polling for status updates
+  useEffect(() => {
+    if (isTerminalStatus) {
       return;
     }
 
@@ -78,10 +86,6 @@ const WaitingClientPage = ({
   }, [isTerminalStatus, reference, status]);
 
 
-  
-
-  const shouldShowOpenSwishButton = isMobile && !isTerminalStatus;
-
   const canCancel = !isCancelling && !isTerminalStatus;
 
   const handleCancel = async () => {
@@ -93,13 +97,11 @@ const WaitingClientPage = ({
     try {
       const canceledPayment = await cancelPayment(reference);
       if (canceledPayment.status === "CANCELLED") {
-        setStatus(PaymentStatus.CANCELLED);
+        useRouter().push("/status/" + reference);
       }
     } catch {
       setRequestError("Kunde inte avbryta betalningen just nu.");
-    } finally {
-      setIsCancelling(false);
-    }
+    } 
   };
 
   return (
@@ -112,21 +114,26 @@ const WaitingClientPage = ({
       <div className="relative mx-auto flex w-full max-w-2xl flex-col gap-6">
         <Card className="border-border/80 bg-card/90 shadow-lg backdrop-blur">
           <CardHeader className="gap-3">
-            <CardTitle className="text-2xl">Väntar på betalning i Swish</CardTitle>
+            <CardTitle className="text-2xl">
+              Väntar på betalning i Swish
+            </CardTitle>
             <CardDescription>
               Den här sidan fortsätter automatiskt när transaktionen är klar i
               Swish-appen.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <WaitingStatusPanel/>
+            <WaitingStatusPanel />
             <WaitingActions
-              shouldShowOpenSwishButton={shouldShowOpenSwishButton}
+              shouldShowOpenSwishButton={isMobile}
               canCancel={canCancel}
               isCancelling={isCancelling}
               onCancel={() => void handleCancel()}
             />
-            <WaitingMetaInfo reference={reference} requestError={requestError} />
+            <WaitingMetaInfo
+              reference={reference}
+              requestError={requestError}
+            />
           </CardContent>
         </Card>
       </div>
