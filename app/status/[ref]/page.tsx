@@ -3,6 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import StatusDetails from "./components/StatusDetails";
 import StatusHero from "./components/StatusHero";
 import { statusContent } from "./components/statusContent";
+import { isTerminalStatus } from "@/lib/utils";
+import { redirect } from "next/navigation";
 
 interface StatusPageProps {
   params: Promise<{ ref: string }>;
@@ -22,19 +24,20 @@ const formatDateTime = (value: Date | null) => {
 const StatusPage = async ({ params }: StatusPageProps) => {
   const { ref } = await params;
   const payment = await getExternalPayment(ref);
+  if (!payment) {
+     redirect(`/start/${ref}`);
+  }
 
-  const content =
-    payment.status in statusContent
-      ? statusContent[payment.status as keyof typeof statusContent]
-      : statusContent.DEFAULT;
+  if(!isTerminalStatus(payment.status)) {
+    if (payment.status === "INITIATED") {
+      redirect(`/start/${ref}`);
+    } else {
+      redirect(`/waiting/${ref}`);
+    }
+  }
+  
+  const content = statusContent[payment.status]
   const isPaid = payment.status === "PAID";
-  const isProcessingLike =
-    payment.status === "INITIATED" || payment.status === "PROCESSING";
-  const primaryHref = isPaid
-    ? payment.redirect_url_on_payment
-    : isProcessingLike
-      ? `/waiting/${ref}`
-      : `/start/${ref}`;
   const smallDate = formatDateTime(payment.paid_at ?? payment.updated_at);
 
   return (
@@ -53,7 +56,7 @@ const StatusPage = async ({ params }: StatusPageProps) => {
           <CardContent className="px-6 py-8 sm:px-8 sm:py-10">
             <StatusDetails
               buttonLabel={content.primaryActionLabel}
-              primaryHref={primaryHref}
+              callbackURL={payment.redirect_url_on_payment}
               isPaid={isPaid}
               message={payment.message}
               smallDate={smallDate}

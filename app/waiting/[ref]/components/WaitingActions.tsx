@@ -27,7 +27,7 @@ const WaitingActions = ({
     <>
       {shouldShowOpenSwishButton && (
         <Button asChild className="h-12 w-full text-base font-semibold">
-          <a href="swish://">Öppna Swish</a>
+          <a href="swish://">Öppna Swish-appen</a>
         </Button>
       )}
 

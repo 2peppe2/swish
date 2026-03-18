@@ -49,7 +49,7 @@ const StartPaymentCard = ({
                 onBlur={onPhoneNumberBlur}
                 placeholder="70 123 45 67"
                 className="-ms-px rounded-l-none shadow-none h-12 text-base"
-                pattern="(7[0-9]{8}|07[0-9]{8})"
+                pattern="(7[0-9]{8}|07[0-9]{8})" //TODO probably should be better validation.
                 maxLength={10}
                 aria-invalid={!!phoneNumberError}
               />

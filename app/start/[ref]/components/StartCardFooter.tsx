@@ -34,7 +34,7 @@ const StartCardFooter: FC<StartCardFooterProps> = ({reference, callbackUrl}) => 
     setIsCancelling(true);
 
     try {
-      await cancelPayment(reference);
+      await cancelPayment(reference); //TODO caching
       setIsOpen(false);
       userRouter.push(callbackUrl);
     } catch (error) {

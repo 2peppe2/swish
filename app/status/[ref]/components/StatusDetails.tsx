@@ -2,7 +2,7 @@ import StatusActions from "./StatusActions";
 
 interface StatusDetailsProps {
   buttonLabel: string;
-  primaryHref: string;
+  callbackURL: string;
   isPaid: boolean;
   message: string;
   smallDate: string | null;
@@ -10,30 +10,32 @@ interface StatusDetailsProps {
 
 const StatusDetails = ({
   buttonLabel,
-  primaryHref,
+  callbackURL: primaryHref,
   isPaid,
   message,
   smallDate,
 }: StatusDetailsProps) => {
   return (
-    <section className="space-y-5 text-center">
-      <div className="mx-auto max-w-xl space-y-2">
+    <section className="flex flex-col gap-4 text-center">
+      
+      {isPaid && 
+      <div className="mx-auto max-w-xl flex flex-col items-center gap-4">
         <p className="text-sm leading-7 text-muted-foreground">
+          <p className="font-semibold mb-2">Meddelade</p>
           {message}
         </p>
-
-        {smallDate ? (
-          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-            Senast uppdaterad {smallDate}
+        {smallDate && (
+          <p className="text-xs text-muted-foreground">
+            Betalning mottagen: {smallDate  }
           </p>
-        ) : null}
+        )}
       </div>
-
+      }
       <StatusActions
         label={buttonLabel}
         primaryHref={primaryHref}
-        isPaid={isPaid}
       />
+      
     </section>
   );
 };
