@@ -34,7 +34,7 @@ const StartCardFooter: FC<StartCardFooterProps> = ({reference, callbackUrl}) => 
     setIsCancelling(true);
 
     try {
-      await cancelPayment(reference); //TODO caching
+      await cancelPayment(reference, false);
       setIsOpen(false);
       userRouter.push(callbackUrl);
     } catch (error) {
@@ -72,7 +72,6 @@ interface CancelPaymentDialogProps {
   onCancel: () => Promise<void>;
 }
 
-// Dialog extracted to keep the footer markup focused on layout.
 const CancelPaymentDialog: FC<CancelPaymentDialogProps> = ({
   isOpen,
   onOpenChange,
