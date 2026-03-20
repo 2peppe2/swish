@@ -11,8 +11,9 @@
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.2.2",
+    "@prisma/adapter-mariadb": "^7.5.0",
     "@prisma/adapter-pg": "^7.4.2",
-    "@prisma/client": "^7.4.2",
+    "@prisma/client": "^7.5.0",
     "axios": "^1.13.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
