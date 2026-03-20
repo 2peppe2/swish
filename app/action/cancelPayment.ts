@@ -1,4 +1,4 @@
-"server-only";
+"use server";
 
 import prisma from "@/lib/prisma";
 import { notifyStatusUpdate } from "@/lib/sse";
