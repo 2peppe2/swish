@@ -1,6 +1,5 @@
 import axios, { AxiosInstance } from "axios";
 import https from "https";
-import fs from "fs";
 
 interface AgentCertificates {
   cert: string;
@@ -165,9 +164,9 @@ export default class PaymentHandler {
     this.development = development;
 
     this._agent = new https.Agent({
-      cert: fs.readFileSync(this.certFile, { encoding: "utf-8" }),
-      key: fs.readFileSync(this.keyFile, { encoding: "utf-8" }),
-      ca: fs.readFileSync(this.caFile, { encoding: "utf-8" }),
+      cert: this.certFile,
+      key: this.keyFile,
+      ca: this.caFile,
     });
 
     this.client = axios.create({

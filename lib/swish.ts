@@ -3,9 +3,9 @@ import Swish from "@/lib/swishPaymentHandler";
 import "dotenv/config";
 
 if (
-  !process.env.SWISH_CERT_PATH ||
-  !process.env.SWISH_KEY_PATH ||
-  !process.env.SWISH_CA_PATH
+  !process.env.SWISH_CERT_BASE64 ||
+  !process.env.SWISH_KEY_BASE64 ||
+  !process.env.SWISH_CA_BASE64
 ) {
   throw new Error("Swish certificate, key, or CA path is not defined in environment variables");
 }
@@ -20,10 +20,14 @@ if (!process.env.ENVIRONMENT) {
 
 const developerMode = process.env.ENVIRONMENT === "development";
 
+const cert = Buffer.from(process.env.SWISH_CERT_BASE64!, "base64").toString("utf-8");
+const key = Buffer.from(process.env.SWISH_KEY_BASE64!, "base64").toString("utf-8");
+const ca = Buffer.from(process.env.SWISH_CA_BASE64!, "base64").toString("utf-8");
+
 const swish = new Swish({
-    cert: process.env.SWISH_CERT_PATH,
-    key: process.env.SWISH_KEY_PATH,
-    ca: process.env.SWISH_CA_PATH,
+    cert: cert,
+    key: key,
+    ca: ca,
   }, {
     callbackUrl: process.env.SWISH_CALLBACK_URL,
     payeeAlias: process.env.SWISH_PAYEE_ALIAS,
