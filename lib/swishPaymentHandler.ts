@@ -113,6 +113,8 @@ type CreateRefundSuccess = {
   location?: string;
 };
 
+type SwishEnvironment = "production" | "development" | "test";
+
 const formatSwishApiErrorMessage = (data?: SwishApiErrorResponse) => {
   if (!data) {
     return null;
@@ -163,7 +165,7 @@ export default class PaymentHandler {
   private callbackUrl: string;
   private payeeAlias: string;
   private currency: string;
-  private development: boolean;
+  private environment: SwishEnvironment;
 
   /**
    * Initialize a new PaymentHandler
@@ -174,7 +176,7 @@ export default class PaymentHandler {
   constructor(
     certs: AgentCertificates,
     defaults: { callbackUrl: string; payeeAlias: string; currency: string },
-    development: boolean,
+    environment: SwishEnvironment,
   ) {
     this.certFile = certs.cert;
     this.keyFile = certs.key;
@@ -182,7 +184,7 @@ export default class PaymentHandler {
     this.callbackUrl = defaults.callbackUrl;
     this.payeeAlias = defaults.payeeAlias;
     this.currency = defaults.currency;
-    this.development = development;
+    this.environment = environment;
 
     this._agent = new https.Agent({
       cert: this.certFile,
@@ -196,9 +198,18 @@ export default class PaymentHandler {
   }
 
   private baseURL(version: "v1" | "v2" = "v2") {
-    const base = this.development
-      ? "https://mss.cpc.getswish.net/swish-cpcapi/api/"
-      : "https://cpc.getswish.net/swish-cpcapi/api/";
+    const base = (() => {
+      switch (this.environment) {
+        case "production":
+          return "https://cpc.getswish.net/swish-cpcapi/api/";
+        case "development":
+          return "https://mss.cpc.getswish.net/swish-cpcapi/api/";
+        case "test":
+          return "https://staging.getswish.pub.tds.tieto.com/swish-cpcapi/api/";
+        default:
+          throw new Error(`Invalid environment: ${this.environment}`);
+      }
+    })();
 
     return `${base}${version}/`;
   }

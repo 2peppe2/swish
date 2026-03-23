@@ -13,22 +13,44 @@ type StartPaymentResult =
   | { ok: true }
   | { ok: false; error: string };
 
+const normalizeSwedishPayerAlias = (payerAlias: string) => {
+  const digits = payerAlias.replace(/\D/g, "");
+
+  if (/^07\d{8}$/.test(digits)) {
+    return `46${digits.slice(1)}`;
+  }
+
+  if (/^7\d{8}$/.test(digits)) {
+    return `46${digits}`;
+  }
+
+  return null;
+};
+
 const startPayment = async ({ reference, payerAlias }: StartPaymentProps) => {
   try {
+    const normalizedPayerAlias = normalizeSwedishPayerAlias(payerAlias);
+    if (!normalizedPayerAlias) {
+      return {
+        ok: false,
+        error: "Mobilnumret måste vara ett svenskt Swish-nummer.",
+      } satisfies StartPaymentResult;
+    }
+
     const payment = await prisma.payment.update({
       where: {
         payee_payment_reference: reference,
       },
       data: {
-        payer_alias: payerAlias,
+        payer_alias: normalizedPayerAlias,
       },
     });
-    log("INFO", "StartPayment",`Attempting to start payment for reference ${reference} with payer alias ${payerAlias}`);
+    log("INFO", "StartPayment",`Attempting to start payment for reference ${reference} with payer alias ${normalizedPayerAlias}`);
     const request = await swish.createPaymentRequest(
         {
             id: payment.id,
             payeePaymentReference: reference,
-            payerAlias: payerAlias,
+            payerAlias: normalizedPayerAlias,
             amount: payment.amount.toString(),
             message: payment.message,
         },

@@ -71,7 +71,7 @@ const temporaryPayment = async (ref: string) => {
     data: {
       id: generateUUID(),
       payee_payment_reference: ref,
-      payee_alias: "1231181189",
+      payee_alias: "46705472993",
       amount: 100,
       status: PaymentStatus.INITIATED,
       message: "Test payment",
