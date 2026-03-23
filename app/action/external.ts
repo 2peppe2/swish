@@ -39,7 +39,7 @@ const retrieveExternalPayment = async (reference: string) => {
   //TODO remove when external API is ready, this is just to be able to test the flow without the external API being implemented
   return await temporaryPayment(reference);
 
-  const savedPayment = await prisma.payment.upsert({
+  /*const savedPayment = await prisma.payment.upsert({
     where: {
       payee_payment_reference: reference,
     },
@@ -61,7 +61,7 @@ const retrieveExternalPayment = async (reference: string) => {
     },
   });
 
-  return savedPayment;
+  return savedPayment;*/
 };
 
 const temporaryPayment = async (ref: string) => {
