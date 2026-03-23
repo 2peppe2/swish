@@ -1,4 +1,5 @@
 import { getExternalPayment } from "@/app/action/external";
+import { redirect } from "next/navigation";
 import WaitingClientPage from "./WaitingClientPage";
 
 interface WaitingPageProps {
@@ -8,6 +9,9 @@ interface WaitingPageProps {
 const WaitingPage = async ({ params }: WaitingPageProps) => {
   const { ref } = await params;
   const payment = await getExternalPayment(ref);
+  if (!payment) {
+    redirect(`/start/${ref}`);
+  }
 
   return (
     <main>

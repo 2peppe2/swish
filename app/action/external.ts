@@ -1,9 +1,14 @@
 "use server";
-import prisma from "@/lib/prisma";
-import { PaymentStatus } from "@/app/generated/prisma/client";
-import { generateUUID } from "@/lib/uuid";
 
-const getExternalPayment = async (reference: string) => {
+import { PaymentStatus } from "@/app/generated/prisma/enums";
+import prisma from "@/lib/prisma";
+import { generateUUID } from "@/lib/uuid";
+import {
+  getExternalPayment as fetchExternalPayment,
+  isExternalPaymentError,
+} from "@/lib/externalHandler";
+
+const retrieveExternalPayment = async (reference: string) => {
   if (!reference) {
     throw new Error("Payment reference is required");
   }
@@ -17,49 +22,62 @@ const getExternalPayment = async (reference: string) => {
   if (payment) {
     return payment;
   }
-  // TODO: Remove temporary payment creation and replace it with the actual fetch from the external API
-  return temporaryPayment(reference);
 
-  // If the payment fetch from the external API and save it to the database
-  const externalApiUrl = process.env.EXTERNAL_API_URL;
-  const response = await fetch(`${externalApiUrl}/${reference}`);
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch payment from external API: ${response.statusText}`,
-    );
+  const paymentData = await fetchExternalPayment(reference);
+  if (isExternalPaymentError(paymentData)) {
+    if (paymentData.error === "Payment not found") {
+      return null;
+    }
+
+    throw new Error(paymentData.error);
   }
-  const paymentData = await response.json();
-  const savedPayment = await prisma.payment.create({
-    data: {
-      id: generateUUID(),
-      payee_payment_reference: paymentData.payee_payment_reference,
-      payee_alias: paymentData.payee_alias,
+
+  const payee_alias = process.env.SWISH_PAYEE_ALIAS;
+  if (!payee_alias) {
+    throw new Error("Payee alias is not configured");
+  }
+  //TODO remove when external API is ready, this is just to be able to test the flow without the external API being implemented
+  return await temporaryPayment(reference);
+
+  const savedPayment = await prisma.payment.upsert({
+    where: {
+      payee_payment_reference: reference,
+    },
+    update: {
+      payer_alias: paymentData.payer_alias,
       amount: paymentData.amount,
-      redirect_url_on_payment: paymentData.redirect_url_on_payment,
-      status: PaymentStatus.CREATED,
+      redirect_url_on_payment: paymentData.redirect_url,
+      message: paymentData.message,
+    },
+    create: {
+      id: generateUUID(),
+      payee_payment_reference: reference,
+      payee_alias: payee_alias,
+      payer_alias: paymentData.payer_alias,
+      amount: paymentData.amount,
+      redirect_url_on_payment: paymentData.redirect_url,
+      status: PaymentStatus.INITIATED,
       message: paymentData.message,
     },
   });
+
   return savedPayment;
 };
-
-export { getExternalPayment };
 
 const temporaryPayment = async (ref: string) => {
   const newPayment = await prisma.payment.create({
     data: {
       id: generateUUID(),
       payee_payment_reference: ref,
-      payee_alias: "1231892116",
-      amount: 100.1,
-      redirect_url_on_payment: "https://example.com",
+      payee_alias: "1231181189",
+      amount: 100,
       status: PaymentStatus.INITIATED,
       message: "Test payment",
+      redirect_url_on_payment: "https://example.com/redirect",
     },
   });
+
   return newPayment;
-};
+}
 
-
-
-
+export { retrieveExternalPayment as getExternalPayment };
