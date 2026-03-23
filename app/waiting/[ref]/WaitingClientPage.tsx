@@ -48,6 +48,7 @@ const WaitingClientPage = ({
     getRemainingSeconds(startedAt),
   );
   const eventSourceRef = useRef<EventSource | null>(null);
+  const suppressStreamErrorRef = useRef(false);
   const router = useRouter();
 
   const isMobile =
@@ -68,6 +69,7 @@ const WaitingClientPage = ({
 
   useEffect(() => {
     let active = true;
+    suppressStreamErrorRef.current = false;
 
     const refreshStatus = async () => {
       try {
@@ -110,11 +112,30 @@ const WaitingClientPage = ({
         return;
       }
 
+      setRequestError(null);
+
+      if (isTerminalStatus(data.status)) {
+        suppressStreamErrorRef.current = true;
+        eventSource.close();
+        if (eventSourceRef.current === eventSource) {
+          eventSourceRef.current = null;
+        }
+        setStatus(data.status);
+        return;
+      }
+
       void refreshStatus();
     };
 
     eventSource.onerror = () => {
       if (!active || eventSourceRef.current !== eventSource) {
+        return;
+      }
+
+      if (
+        suppressStreamErrorRef.current ||
+        eventSource.readyState === EventSource.CLOSED
+      ) {
         return;
       }
 
@@ -125,6 +146,7 @@ const WaitingClientPage = ({
 
     return () => {
       active = false;
+      suppressStreamErrorRef.current = true;
       eventSource.close();
       if (eventSourceRef.current === eventSource) {
         eventSourceRef.current = null;
