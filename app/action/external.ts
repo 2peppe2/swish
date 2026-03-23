@@ -3,10 +3,7 @@
 import { PaymentStatus } from "@/app/generated/prisma/enums";
 import prisma from "@/lib/prisma";
 import { generateUUID } from "@/lib/uuid";
-import {
-  getExternalPayment as fetchExternalPayment,
-  isExternalPaymentError,
-} from "@/lib/externalHandler";
+
 
 const retrieveExternalPayment = async (reference: string) => {
   if (!reference) {
@@ -22,8 +19,10 @@ const retrieveExternalPayment = async (reference: string) => {
   if (payment) {
     return payment;
   }
+  //TODO remove when external API is ready, this is just to be able to test the flow without the external API being implemented
+  return await temporaryPayment(reference);
 
-  const paymentData = await fetchExternalPayment(reference);
+  /*const paymentData = await fetchExternalPayment(reference);
   if (isExternalPaymentError(paymentData)) {
     if (paymentData.error === "Payment not found") {
       return null;
@@ -36,10 +35,9 @@ const retrieveExternalPayment = async (reference: string) => {
   if (!payee_alias) {
     throw new Error("Payee alias is not configured");
   }
-  //TODO remove when external API is ready, this is just to be able to test the flow without the external API being implemented
-  return await temporaryPayment(reference);
+  
 
-  /*const savedPayment = await prisma.payment.upsert({
+  const savedPayment = await prisma.payment.upsert({
     where: {
       payee_payment_reference: reference,
     },
