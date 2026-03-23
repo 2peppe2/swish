@@ -5,7 +5,61 @@ import { notifyStatusUpdate } from "@/lib/sse";
 import { NextResponse, NextRequest } from "next/server";
 import log from "@/lib/logger";
 
-const ALLOWED_IPS = ["89.46.83.171"];
+const ALLOWED_IP_RANGES = [
+  "89.46.83.0/24",
+  "103.57.74.0/24",
+  "77.81.6.112",
+];
+
+const ipv4ToNumber = (ip: string) => {
+  const parts = ip.split(".");
+  if (parts.length !== 4) {
+    return null;
+  }
+
+  let result = 0;
+  for (const part of parts) {
+    const value = Number(part);
+    if (!Number.isInteger(value) || value < 0 || value > 255) {
+      return null;
+    }
+
+    result = (result << 8) + value;
+  }
+
+  return result >>> 0;
+};
+
+const isIpAllowed = (ip: string) => {
+  const ipNumber = ipv4ToNumber(ip);
+  if (ipNumber === null) {
+    return false;
+  }
+
+  return ALLOWED_IP_RANGES.some((entry) => {
+    if (!entry.includes("/")) {
+      return entry === ip;
+    }
+
+    const [network, prefixLengthValue] = entry.split("/");
+    const networkNumber = ipv4ToNumber(network);
+    const prefixLength = Number(prefixLengthValue);
+
+    if (
+      networkNumber === null ||
+      !Number.isInteger(prefixLength) ||
+      prefixLength < 0 ||
+      prefixLength > 32
+    ) {
+      return false;
+    }
+
+    const mask =
+      prefixLength === 0 ? 0 : ((0xffffffff << (32 - prefixLength)) >>> 0);
+
+    return (ipNumber & mask) === (networkNumber & mask);
+  });
+};
 
 
 export async function POST(request: NextRequest) {
@@ -13,7 +67,7 @@ export async function POST(request: NextRequest) {
   const forwardedFor = request.headers.get("x-forwarded-for");
   const ip = forwardedFor?.split(",")[0].trim();
 
-  if (!ip || !ALLOWED_IPS.includes(ip)) {
+  if (!ip || !isIpAllowed(ip)) {
     log("WARN", "Callback", `Received callback from unauthorized IP: ${ip}`);
     return NextResponse.json(
       { error: "Forbidden" },
