@@ -2,6 +2,7 @@
 
 import { startPayment } from "@/app/action/startPayment";
 import { Button } from "@/components/ui/button";
+import { runWithViewTransition } from "@/lib/viewTransition";
 import { FC, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -30,7 +31,9 @@ const StartPayButton: FC<StartPayButtonProps> = ({ canSubmit, reference, phoneNu
         return;
       }
 
-      router.push(`/waiting/${reference}`);
+      runWithViewTransition(() => {
+        router.push(`/waiting/${reference}`);
+      });
     } catch (error) {
       console.error("Payment failed:", error);
     } finally {

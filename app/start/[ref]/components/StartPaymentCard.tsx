@@ -28,7 +28,7 @@ const StartPaymentCard = ({
   payment,
 }: StartPaymentCardProps) => {
   return (
-    <Card className="border-border/80 bg-card/90 shadow-lg backdrop-blur">
+    <Card className="payment-flow-card border-border/80 bg-card/90 shadow-lg backdrop-blur">
       <StartCardHeader />
       <CardContent className="space-y-6">
         <div className="space-y-2">

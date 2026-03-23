@@ -124,3 +124,37 @@
     @apply bg-background text-foreground;
   }
 }
+
+.payment-flow-card {
+  view-transition-name: payment-flow-card;
+}
+
+::view-transition-old(payment-flow-card),
+::view-transition-new(payment-flow-card) {
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@supports not (view-transition-name: payment-flow-card) {
+  @keyframes payment-card-enter {
+    from {
+      transform: scale(0.985);
+    }
+
+    to {
+      transform: scale(1);
+    }
+  }
+
+  .page-transition .payment-flow-card {
+    animation: payment-card-enter 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+    transform-origin: center center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page-transition .payment-flow-card {
+      animation: none;
+    }
+  }
+}

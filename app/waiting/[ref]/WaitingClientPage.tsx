@@ -20,6 +20,7 @@ import { PAYMENT_TIMEOUT_MS } from "@/lib/paymentTimeoutConfig";
 import { useRouter } from "next/navigation";
 import { isTerminalStatus } from "@/lib/utils";
 import type { StatusStreamEvent } from "@/lib/sse";
+import { runWithViewTransition } from "@/lib/viewTransition";
 
 interface WaitingClientPageProps {
   reference: string;
@@ -59,7 +60,9 @@ const WaitingClientPage = ({
     if (isTerminalStatus(status)) {
       eventSourceRef.current?.close();
       eventSourceRef.current = null;
-      router.push("/status/" + reference);
+      runWithViewTransition(() => {
+        router.push("/status/" + reference);
+      });
     }
   }, [status, router, reference]);
 
@@ -164,14 +167,9 @@ const WaitingClientPage = ({
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background px-4 py-8 sm:px-6 sm:py-10">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-32 top-0 h-72 w-72 rounded-full bg-primary/10 blur-3xl dark:bg-primary/20" />
-        <div className="absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-secondary/40 blur-3xl dark:bg-secondary/20" />
-      </div>
-
-      <div className="relative mx-auto flex w-full max-w-2xl flex-col gap-6">
-        <Card className="border-border/80 bg-card/90 shadow-lg backdrop-blur">
+    <div className="min-h-screen px-4 py-8 sm:px-6 sm:py-10">
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+        <Card className="payment-flow-card border-border/80 bg-card/90 shadow-lg backdrop-blur">
           <CardHeader className="gap-3">
             <Badge
               variant="outline"
