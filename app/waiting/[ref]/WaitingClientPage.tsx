@@ -155,10 +155,7 @@ const WaitingClientPage = ({
 
     try {
       const canceledPayment = await cancelPayment(reference);
-      if (canceledPayment.status === "CANCELLED") {
-        setStatus(canceledPayment.status);
-        router.push("/status/" + reference);
-      }
+      setStatus(canceledPayment.status);
     } catch {
       setRequestError("Kunde inte avbryta betalningen just nu.");
     } finally {

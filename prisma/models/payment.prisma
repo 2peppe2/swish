@@ -16,7 +16,7 @@ model Payment {
 
 enum PaymentStatus {
   INITIATED
-  PROCESSING
+  CREATED
   PAID
   ERROR
   DECLINED

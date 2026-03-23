@@ -25,7 +25,7 @@ const StartPage = async ({ params }: StartPageProps) => {
   if (isTerminalStatus(payment.status)) {
     redirect(`/status/${ref}`);
   }
-  if (payment.status === "PROCESSING") {
+  if (payment.status === "CREATED") {
     redirect(`/waiting/${ref}`);
   }
 

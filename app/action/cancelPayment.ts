@@ -1,10 +1,42 @@
 "use server";
 
+import { PaymentStatus } from "@/app/generated/prisma/enums";
 import prisma from "@/lib/prisma";
 import { notifyStatusUpdate } from "@/lib/sse";
 import swish from "@/lib/swish";
+import { isSwishError } from "@/lib/swishPaymentHandler";
+import { isTerminalStatus } from "@/lib/utils";
 
-const cancelPayment = async (reference: string, isProcessing = true) => {
+const syncTerminalSwishStatus = async (
+  paymentId: string,
+  previousStatus: PaymentStatus,
+  reference: string,
+  status: PaymentStatus,
+  datePaid: string | null,
+) => {
+  const updatedPayment = await prisma.payment.update({
+    where: {
+      id: paymentId,
+    },
+    data: {
+      status,
+      paid_at: status === PaymentStatus.PAID && datePaid ? new Date(datePaid) : null,
+    },
+  });
+
+  if (previousStatus !== updatedPayment.status) {
+    notifyStatusUpdate({
+      type: "status-update",
+      id: updatedPayment.id,
+      reference,
+      status: updatedPayment.status,
+    });
+  }
+
+  return updatedPayment;
+};
+
+const cancelPayment = async (reference: string, isCreated = true) => {
   const payment = await prisma.payment.findUnique({
     where: {
       payee_payment_reference: reference,
@@ -13,10 +45,23 @@ const cancelPayment = async (reference: string, isProcessing = true) => {
   if (!payment) {
     throw new Error(`Payment with reference ${reference} not found`);
   }
-  if (isProcessing) {
+  if (isCreated) {
+    const swishPayment = await swish.retrievePaymentRequest(payment.id);
+    if (isSwishError(swishPayment)) {
+      throw new Error(`Failed to retrieve payment: ${swishPayment.message}`);
+    }
+    if (isTerminalStatus(swishPayment.status)) {
+      return syncTerminalSwishStatus(
+        payment.id,
+        payment.status,
+        payment.payee_payment_reference,
+        swishPayment.status,
+        swishPayment.datePaid,
+      );
+    }
     const swishPaymentResponse = await swish.cancelPaymentRequest(payment.id);
-    if (!swishPaymentResponse) {
-      throw new Error("Failed to cancel payment");
+    if (isSwishError(swishPaymentResponse)) {
+      throw new Error(`Failed to cancel payment: ${swishPaymentResponse.message}`);
     }
 
     if (swishPaymentResponse.status !== "CANCELLED") {

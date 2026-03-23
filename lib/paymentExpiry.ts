@@ -37,7 +37,7 @@ const expirePaymentIfTimedOut = async (reference: string) => {
       id: payment.id,
       updated_at: payment.updated_at,
       status: {
-        in: [PaymentStatus.INITIATED, PaymentStatus.PROCESSING],
+        in: [PaymentStatus.INITIATED, PaymentStatus.CREATED],
       },
     },
     data: {

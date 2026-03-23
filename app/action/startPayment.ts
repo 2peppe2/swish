@@ -41,7 +41,7 @@ const startPayment = async ({ reference, payerAlias }: StartPaymentProps) => {
         id: payment.id,
       },
       data: {
-        status: "PROCESSING",
+        status: "CREATED",
       },
     });
 

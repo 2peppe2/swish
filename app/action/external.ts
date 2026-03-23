@@ -36,7 +36,7 @@ const getExternalPayment = async (reference: string) => {
       payee_alias: paymentData.payee_alias,
       amount: paymentData.amount,
       redirect_url_on_payment: paymentData.redirect_url_on_payment,
-      status: PaymentStatus.PROCESSING,
+      status: PaymentStatus.CREATED,
       message: paymentData.message,
     },
   });

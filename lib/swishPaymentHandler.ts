@@ -46,6 +46,7 @@ type SwishApiErrorDetail = {
 type SwishApiErrorResponse = SwishApiErrorDetail | SwishApiErrorDetail[];
 
 export type SwishError = {
+  kind: "swish_error";
   message: string;
   data?: SwishApiErrorResponse;
   status?: number;
@@ -112,11 +113,31 @@ type CreateRefundSuccess = {
   location?: string;
 };
 
+const formatSwishApiErrorMessage = (data?: SwishApiErrorResponse) => {
+  if (!data) {
+    return null;
+  }
+
+  const firstError = Array.isArray(data) ? data[0] : data;
+  if (!firstError) {
+    return null;
+  }
+
+  const code = firstError.errorCode?.trim();
+  const message = firstError.errorMessage?.trim();
+
+  if (code && message) {
+    return `${code}: ${message}`;
+  }
+
+  return message || code || null;
+};
+
 export const isSwishError = (value: unknown): value is SwishError =>
   typeof value === "object" &&
   value !== null &&
-  "message" in value &&
-  typeof (value as { message?: unknown }).message === "string";
+  "kind" in value &&
+  (value as { kind?: unknown }).kind === "swish_error";
 
 export type {
   PaymentRequest,
@@ -193,16 +214,21 @@ export default class PaymentHandler {
 
   private formatError(error: unknown): SwishError {
     if (axios.isAxiosError(error)) {
+      const swishMessage = formatSwishApiErrorMessage(
+        error.response?.data as SwishApiErrorResponse | undefined,
+      );
+
       return {
-        message: error.message,
+        kind: "swish_error",
+        message: swishMessage ?? error.message,
         data: error.response?.data,
         status: error.response?.status,
       };
     }
     if (error instanceof Error) {
-      return { message: error.message };
+      return { kind: "swish_error", message: error.message };
     }
-    return { message: "Unknown error" };
+    return { kind: "swish_error", message: "Unknown error" };
   }
 
   /**
@@ -244,10 +270,11 @@ export default class PaymentHandler {
    * @returns the data of the payment request
    */
   public async retrievePaymentRequest(
-    location: string,
+    id: string,
   ): Promise<SwishPaymentRequestResponse | SwishError> {
     try {
-      const res = await this.client.get<SwishPaymentRequestResponse>(location);
+      const url = `${this.baseURL("v1")}paymentrequests/${id}`;
+      const res = await this.client.get<SwishPaymentRequestResponse>(url);
 
       return res.data;
     } catch (e: unknown) {
