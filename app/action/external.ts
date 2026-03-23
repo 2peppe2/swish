@@ -3,10 +3,11 @@
 import { PaymentStatus } from "@/app/generated/prisma/enums";
 import prisma from "@/lib/prisma";
 import { generateUUID } from "@/lib/uuid";
-
+import log from "@/lib/logger";
 
 const retrieveExternalPayment = async (reference: string) => {
   if (!reference) {
+    log("ERROR", "GetExternalPayment", "Payment reference is required");
     throw new Error("Payment reference is required");
   }
 
@@ -25,18 +26,21 @@ const retrieveExternalPayment = async (reference: string) => {
   /*const paymentData = await fetchExternalPayment(reference);
   if (isExternalPaymentError(paymentData)) {
     if (paymentData.error === "Payment not found") {
+      log("WARN", "GetExternalPayment", `Payment with reference ${reference} not found in external system`);
       return null;
     }
-
+    log("ERROR", "GetExternalPayment", `Failed to fetch payment data for reference ${reference} from external system: ${paymentData.error}`);
     throw new Error(paymentData.error);
   }
 
   const payee_alias = process.env.SWISH_PAYEE_ALIAS;
   if (!payee_alias) {
+    log("ERROR", "GetExternalPayment", "Payee alias is not configured in environment variables");
     throw new Error("Payee alias is not configured");
   }
   
-
+  log("INFO", "GetExternalPayment", `Fetched payment data for reference ${reference} from external system, saving to database with payee alias ${payee_alias} and amount ${paymentData.amount}`);
+  
   const savedPayment = await prisma.payment.upsert({
     where: {
       payee_payment_reference: reference,
@@ -74,6 +78,8 @@ const temporaryPayment = async (ref: string) => {
       redirect_url_on_payment: "https://example.com/redirect",
     },
   });
+
+  log("INFO", "GetExternalPayment", `Created temporary payment with reference ${ref} for testing purposes`);
 
   return newPayment;
 }

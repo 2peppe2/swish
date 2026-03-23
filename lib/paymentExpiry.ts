@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { notifyStatusUpdate } from "@/lib/sse";
 import { PAYMENT_TIMEOUT_MS } from "@/lib/paymentTimeoutConfig";
 import { isTerminalStatus } from "@/lib/utils";
+import log from "@/lib/logger";
 
 const expirePaymentIfTimedOut = async (reference: string) => {
   const payment = await prisma.payment.findUnique({
@@ -20,17 +21,22 @@ const expirePaymentIfTimedOut = async (reference: string) => {
   });
 
   if (!payment) {
+    log("ERROR", "ExpirePayment", `Payment with reference ${reference} not found when attempting to expire`);
     throw new Error(`Payment with reference ${reference} not found`);
   }
 
   if (isTerminalStatus(payment.status)) {
+    log("INFO", "ExpirePayment", `Payment with reference ${reference} is already in terminal status ${payment.status}, skipping expiration`);
     return payment.status;
   }
 
   const expiresAt = payment.updated_at.getTime() + PAYMENT_TIMEOUT_MS;
   if (Date.now() < expiresAt) {
+    log("INFO", "ExpirePayment", `Payment with reference ${reference} is not expired yet, skipping expiration. Remaining time: ${expiresAt - Date.now()} ms`);
     return payment.status;
   }
+
+  log("INFO", "ExpirePayment", `Expiring payment with reference ${reference} due to timeout`);
 
   const updateResult = await prisma.payment.updateMany({
     where: {
@@ -66,6 +72,7 @@ const expirePaymentIfTimedOut = async (reference: string) => {
   });
 
   if (!latestPayment) {
+    log("ERROR", "ExpirePayment", `Payment with reference ${reference} not found after attempting to expire`);
     throw new Error(`Payment with reference ${reference} not found`);
   }
 
@@ -84,6 +91,7 @@ const getPaymentTimeoutRemainingMs = async (reference: string) => {
   });
 
   if (!payment || isTerminalStatus(payment.status)) {
+    log("INFO", "GetPaymentTimeoutRemainingMs", `Payment with reference ${reference} is either not found or in terminal status, returning null for remaining timeout`);
     return null;
   }
 

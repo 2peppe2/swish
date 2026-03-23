@@ -3,6 +3,7 @@ import { SwishPaymentResponse } from "./types";
 import prisma from "@/lib/prisma";
 import { notifyStatusUpdate } from "@/lib/sse";
 import { NextResponse, NextRequest } from "next/server";
+import log from "@/lib/logger";
 
 const ALLOWED_IPS = ["89.46.83.171"];
 
@@ -13,6 +14,7 @@ export async function POST(request: NextRequest) {
   const ip = forwardedFor?.split(",")[0].trim();
 
   if (!ip || !ALLOWED_IPS.includes(ip)) {
+    log("WARN", "Callback", `Received callback from unauthorized IP: ${ip}`);
     return NextResponse.json(
       { error: "Forbidden" },
       { status: 403 }
@@ -29,6 +31,8 @@ export async function POST(request: NextRequest) {
     status,
     datePaid,
   } = body;
+
+  log("INFO", "Callback", `Received callback for payment reference ${payeePaymentReference} with status ${status}`);
 
   const existingPayment = await prisma.payment.findUnique({
     where: {
@@ -60,6 +64,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (hasStatusChanged) {
+    log("INFO", "Callback", `Payment status updated for reference ${payeePaymentReference} to ${status}`);
     notifyStatusUpdate({
       type: "status-update",
       id,
@@ -70,9 +75,9 @@ export async function POST(request: NextRequest) {
 
   const response = await updateExternalPayment(payeePaymentReference, status);
   if (!response.success) {
-    console.error(`Failed to update external payment status: ${response.error}`);
+    log("ERROR", "Callback", `Failed to update external payment status for reference ${payeePaymentReference}: ${response.error}, with payment status ${status}`);
   }
-  
+  log("INFO", "Callback", `External payment status update result for reference ${payeePaymentReference}: ${response.success ? "success" : "failure"}, with payment status ${status}`);
   return new Response(null, {
     status: 200,
   });

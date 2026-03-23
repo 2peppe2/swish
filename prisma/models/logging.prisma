@@ -1,0 +1,13 @@
+model logger {
+  id         String   @id @default(uuid())   
+  level      LogLevel
+  type       String
+  message    String
+  timestamp  DateTime @default(now())
+}
+
+enum LogLevel {
+  INFO
+  WARN
+  ERROR
+}

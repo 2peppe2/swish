@@ -2,6 +2,7 @@
 import prisma from "@/lib/prisma";
 import swish from "@/lib/swish";
 import { isSwishError } from "@/lib/swishPaymentHandler";
+import log from "@/lib/logger";
 
 interface StartPaymentProps {
   reference: string;
@@ -22,7 +23,7 @@ const startPayment = async ({ reference, payerAlias }: StartPaymentProps) => {
         payer_alias: payerAlias,
       },
     });
-
+    log("INFO", "StartPayment",`Attempting to start payment for reference ${reference} with payer alias ${payerAlias}`);
     const request = await swish.createPaymentRequest(
         {
             id: payment.id,
@@ -33,6 +34,7 @@ const startPayment = async ({ reference, payerAlias }: StartPaymentProps) => {
         },
     );
     if (isSwishError(request)) {
+      log("ERROR", "StartPayment", `Failed to create payment request for reference ${reference}: ${request.message}`);
       return { ok: false, error: request.message } satisfies StartPaymentResult;
     }
 
@@ -44,11 +46,12 @@ const startPayment = async ({ reference, payerAlias }: StartPaymentProps) => {
         status: "CREATED",
       },
     });
-
+    log("INFO", "StartPayment", `Payment request created successfully for reference ${reference}, payment status updated to CREATED`);
     return { ok: true } satisfies StartPaymentResult;
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Kunde inte starta betalningen.";
+    log("ERROR", "StartPayment", `Failed to start payment for reference ${reference}: ${message}`);
     return { ok: false, error: message } satisfies StartPaymentResult;
   }
 };

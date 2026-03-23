@@ -6,7 +6,7 @@ import { notifyStatusUpdate } from "@/lib/sse";
 import swish from "@/lib/swish";
 import { isSwishError } from "@/lib/swishPaymentHandler";
 import { isTerminalStatus } from "@/lib/utils";
-
+import log from "@/lib/logger";
 const syncTerminalSwishStatus = async (
   paymentId: string,
   previousStatus: PaymentStatus,
@@ -39,6 +39,7 @@ const syncTerminalSwishStatus = async (
 };
 
 const cancelPayment = async (reference: string, isCreated = true) => {
+  log("INFO", "CancelPayment", `Attempting to cancel payment with reference ${reference}`);
   const payment = await prisma.payment.findUnique({
     where: {
       payee_payment_reference: reference,
@@ -50,9 +51,11 @@ const cancelPayment = async (reference: string, isCreated = true) => {
   if (isCreated) {
     const swishPayment = await swish.retrievePaymentRequest(payment.id);
     if (isSwishError(swishPayment)) {
+      log("ERROR", "CancelPayment", `Failed to retrieve payment from Swish for reference ${reference}: ${swishPayment.message}`);
       throw new Error(`Failed to retrieve payment: ${swishPayment.message}`);
     }
     if (isTerminalStatus(swishPayment.status)) {
+      log("INFO", "CancelPayment", `Payment with reference ${reference} is already in terminal status ${swishPayment.status}, syncing status without attempting cancellation`);
       return syncTerminalSwishStatus(
         payment.id,
         payment.status,
@@ -64,10 +67,12 @@ const cancelPayment = async (reference: string, isCreated = true) => {
     }
     const swishPaymentResponse = await swish.cancelPaymentRequest(payment.id);
     if (isSwishError(swishPaymentResponse)) {
+      log("ERROR", "CancelPayment", `Failed to cancel payment with reference ${reference}: ${swishPaymentResponse.message}`);
       throw new Error(`Failed to cancel payment: ${swishPaymentResponse.message}`);
     }
 
     if (swishPaymentResponse.status !== "CANCELLED") {
+      log("ERROR", "CancelPayment", `Unexpected status after cancellation attempt for reference ${reference}: ${swishPaymentResponse.status}`);
       throw new Error("Payment was not cancelled");
     }
   }
@@ -80,6 +85,8 @@ const cancelPayment = async (reference: string, isCreated = true) => {
       status: "CANCELLED",
     },
   });
+
+  log("INFO", "CancelPayment", `Payment with reference ${reference} cancelled successfully in database`);
 
   if (payment.status !== cancelledPayment.status) {
     notifyStatusUpdate({
