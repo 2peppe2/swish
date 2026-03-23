@@ -13,6 +13,7 @@ const syncTerminalSwishStatus = async (
   reference: string,
   status: PaymentStatus,
   datePaid: string | null,
+  paymentReference: string | null,
 ) => {
   const updatedPayment = await prisma.payment.update({
     where: {
@@ -21,6 +22,7 @@ const syncTerminalSwishStatus = async (
     data: {
       status,
       paid_at: status === PaymentStatus.PAID && datePaid ? new Date(datePaid) : null,
+      payment_reference: status === PaymentStatus.PAID ? paymentReference  : null,
     },
   });
 
@@ -57,6 +59,7 @@ const cancelPayment = async (reference: string, isCreated = true) => {
         payment.payee_payment_reference,
         swishPayment.status,
         swishPayment.datePaid,
+        swishPayment.paymentReference,
       );
     }
     const swishPaymentResponse = await swish.cancelPaymentRequest(payment.id);

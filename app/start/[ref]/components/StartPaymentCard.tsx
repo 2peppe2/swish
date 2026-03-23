@@ -52,6 +52,7 @@ const StartPaymentCard = ({
                 pattern="(7[0-9]{8}|07[0-9]{8})" //TODO probably should be better validation.
                 maxLength={10}
                 aria-invalid={!!phoneNumberError}
+                autoComplete="tel"
               />
             </div>
             <FieldDescription>Mobilnummer kopplat till swish.</FieldDescription>
