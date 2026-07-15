@@ -4,6 +4,7 @@ import { PaymentStatus } from "@/app/generated/prisma/enums";
 import prisma from "@/lib/prisma";
 import { generateUUID } from "@/lib/uuid";
 import log from "@/lib/logger";
+import { getExternalPayment, isExternalPaymentError } from "@/lib/externalHandler";
 
 const retrieveExternalPayment = async (reference: string) => {
   if (!reference) {
@@ -20,10 +21,9 @@ const retrieveExternalPayment = async (reference: string) => {
   if (payment) {
     return payment;
   }
-  //TODO remove when external API is ready, this is just to be able to test the flow without the external API being implemented
-  return await temporaryPayment(reference);
+  
 
-  /*const paymentData = await fetchExternalPayment(reference);
+  const paymentData = await getExternalPayment(reference);
   if (isExternalPaymentError(paymentData)) {
     if (paymentData.error === "Payment not found") {
       log("WARN", "GetExternalPayment", `Payment with reference ${reference} not found in external system`);
@@ -63,25 +63,8 @@ const retrieveExternalPayment = async (reference: string) => {
     },
   });
 
-  return savedPayment;*/
+  return savedPayment;
 };
 
-const temporaryPayment = async (ref: string) => {
-  const newPayment = await prisma.payment.create({
-    data: {
-      id: generateUUID(),
-      payee_payment_reference: ref,
-      payee_alias: "46705472993",
-      amount: 100,
-      status: PaymentStatus.INITIATED,
-      message: "Test payment",
-      redirect_url_on_payment: "https://example.com/redirect",
-    },
-  });
-
-  log("INFO", "GetExternalPayment", `Created temporary payment with reference ${ref} for testing purposes`);
-
-  return newPayment;
-}
 
 export { retrieveExternalPayment as getExternalPayment };

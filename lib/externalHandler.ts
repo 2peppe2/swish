@@ -1,5 +1,6 @@
 interface ExternalPayment {
   payer_alias: string | null;
+  subtitle: string | null;
   amount: number;
   message: string;
   redirect_url: string;
@@ -32,12 +33,7 @@ const normalizeExternalPayment = (paymentData: unknown): ExternalPaymentResponse
     };
   }
 
-  const data = paymentData as {
-    payer_alias?: unknown;
-    amount?: unknown;
-    message?: unknown;
-    redirect_url?: unknown;
-  };
+  const data = paymentData as ExternalPayment;
 
   if (typeof data.amount !== "number" || !Number.isFinite(data.amount) || data.amount <= 0) {
     return {
@@ -65,6 +61,7 @@ const normalizeExternalPayment = (paymentData: unknown): ExternalPaymentResponse
 
   return {
     payer_alias: data.payer_alias ?? null,
+    subtitle: data.subtitle ?? null,
     amount: data.amount,
     message: data.message,
     redirect_url: data.redirect_url,
@@ -122,7 +119,7 @@ const updateExternalPayment = async (
     const externalApiUrl = getRequiredEnv("EXTERNAL_API_URL");
     const externalApiKey = getRequiredEnv("EXTERNAL_API_KEY");
 
-    const response = await fetch(`${externalApiUrl}/${reference}/status`, {
+    const response = await fetch(`${externalApiUrl}/status/${reference}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
