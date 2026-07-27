@@ -8,8 +8,28 @@ interface StartClientPageProps {
   payment: Payment;
 }
 
+const formatPayerAliasForInput = (payerAlias: string | null) => {
+  if (!payerAlias) {
+    return "";
+  }
+
+  const digits = payerAlias.replace(/\D/g, "");
+
+  if (/^46\d{9}$/.test(digits)) {
+    return digits.slice(2);
+  }
+
+  if (/^0?7\d{8}$/.test(digits)) {
+    return digits;
+  }
+
+  return "";
+};
+
 const StartClientPage = ({ payment }: StartClientPageProps) => {
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState(() =>
+    formatPayerAliasForInput(payment.payer_alias),
+  );
   const [phoneNumberTouched, setPhoneNumberTouched] = useState(false);
   const isPhoneNumberValid = /^(?:7\d{8}|07\d{8})$/.test(phoneNumber);
   const phoneNumberError =

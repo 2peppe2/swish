@@ -1,3 +1,5 @@
+import log from "./logger";
+
 interface ExternalPayment {
   payer_alias: string | null;
   subtitle: string | null;
@@ -34,6 +36,7 @@ const normalizeExternalPayment = (paymentData: unknown): ExternalPaymentResponse
   }
 
   const data = paymentData as ExternalPayment;
+  const payerAlias = data.payer_alias ?? null;
 
   if (typeof data.amount !== "number" || !Number.isFinite(data.amount) || data.amount <= 0) {
     return {
@@ -53,14 +56,14 @@ const normalizeExternalPayment = (paymentData: unknown): ExternalPaymentResponse
     };
   }
 
-  if (data.payer_alias !== null && data.payer_alias !== undefined && typeof data.payer_alias !== "string") {
+  if (payerAlias !== null && typeof payerAlias !== "string") {
     return {
       error: "Invalid payer_alias received from external API",
     };
   }
 
   return {
-    payer_alias: data.payer_alias ?? null,
+    payer_alias: payerAlias,
     subtitle: data.subtitle ?? null,
     amount: data.amount,
     message: data.message,
@@ -89,7 +92,7 @@ const getExternalPayment = async (
     }
 
     if (!response.ok) {
-      console.error(
+      log("ERROR", "GetExternalPayment",
         `Failed to fetch payment from external API: ${response.status} ${response.statusText}`,
       );
       return {

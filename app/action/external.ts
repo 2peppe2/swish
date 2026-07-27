@@ -22,7 +22,7 @@ const retrieveExternalPayment = async (reference: string) => {
     return payment;
   }
   
-
+  // If not found in the database, fetch from external system
   const paymentData = await getExternalPayment(reference);
   if (isExternalPaymentError(paymentData)) {
     if (paymentData.error === "Payment not found") {
